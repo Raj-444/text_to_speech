@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -38,7 +37,15 @@
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
         .waveform-bar { width: 3px; background: #6366f1; border-radius: 10px; transition: height 0.2s; }
         input[type="range"] { accent-color: #6366f1; }
-        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        /* Animations */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        
+        .pulse-slow { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
@@ -47,17 +54,10 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const { motion, AnimatePresence } = window.Motion;
 
         const Icon = ({ name, size = 20, className = "" }) => {
-            const iconRef = useRef(null);
             useEffect(() => {
-                if (iconRef.current) {
-                    const icon = lucide.icons[name];
-                    if (icon) {
-                        const svg = lucide.createIcons({ icons: { [name]: icon } });
-                    }
-                }
+                lucide.createIcons();
             }, [name]);
             return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
         };
@@ -96,7 +96,7 @@
             const [batchItems, setBatchItems] = useState(['']);
             const [fileName, setFileName] = useState('untitled_audio');
             const [isPlaying, setIsPlaying] = useState(false);
-            const [availableVoices, setAvailableVoices] = useState([]);
+            const [showSuccess, setShowSuccess] = useState(false);
             
             const synth = window.speechSynthesis;
 
@@ -104,13 +104,11 @@
                 lucide.createIcons();
                 const loadVoices = () => {
                     const voices = synth.getVoices();
-                    setAvailableVoices(voices);
+                    // Initial load
                 };
                 loadVoices();
                 if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
             }, []);
-
-            useEffect(() => { lucide.createIcons(); }, [activeTab, batchMode, batchItems, isGenerating]);
 
             const handleGenerate = () => {
                 const textToSpeak = batchMode ? batchItems.join('. ') : text;
@@ -118,6 +116,7 @@
 
                 setIsGenerating(true);
                 setProgress(0);
+                setShowSuccess(false);
 
                 // Simulation for progress bar
                 const interval = setInterval(() => {
@@ -129,9 +128,11 @@
 
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 
-                // Try to find a matching voice
-                const langCode = language === 'BN' ? 'bn-BD' : 'en-US';
-                const matchedVoice = availableVoices.find(v => v.lang.includes(langCode) && (voice.includes('Female') ? (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) : (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Google'))));
+                // Voice matching logic
+                const voices = synth.getVoices();
+                const langCode = language === 'BN' ? 'bn' : 'en';
+                const matchedVoice = voices.find(v => v.lang.toLowerCase().includes(langCode) && 
+                    (voice.includes('Female') ? (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Google')) : true));
                 
                 if (matchedVoice) utterance.voice = matchedVoice;
                 utterance.rate = speed;
@@ -142,28 +143,23 @@
                     setProgress(100);
                     setIsGenerating(false);
                     setIsPlaying(false);
-                    console.log('Finished speaking');
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 3000);
                 };
 
-                utterance.onerror = (e) => {
-                    console.error('Speech error', e);
+                utterance.onerror = () => {
                     setIsGenerating(false);
                 };
 
-                synth.cancel(); // Stop current speech
+                synth.cancel();
                 synth.speak(utterance);
                 setIsPlaying(true);
             };
 
             const handlePlayPause = () => {
                 if (synth.speaking) {
-                    if (synth.paused) {
-                        synth.resume();
-                        setIsPlaying(true);
-                    } else {
-                        synth.pause();
-                        setIsPlaying(false);
-                    }
+                    if (synth.paused) { synth.resume(); setIsPlaying(true); } 
+                    else { synth.pause(); setIsPlaying(false); }
                 } else {
                     handleGenerate();
                 }
@@ -177,10 +173,7 @@
                             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
                                 <Icon name="mic" size={24} />
                             </div>
-                            <div>
-                                <h1 className="font-bold text-lg">VoxAI</h1>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Premium TTS</p>
-                            </div>
+                            <div><h1 className="font-bold text-lg">VoxAI</h1><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Premium TTS</p></div>
                         </div>
                         <nav className="flex-1 space-y-1">
                             <SidebarItem icon="layout-dashboard" label="Studio" active={activeTab === 'generate'} onClick={() => setActiveTab('generate')} />
@@ -189,9 +182,9 @@
                         </nav>
                     </aside>
 
-                    {/* Main */}
+                    {/* Main Content */}
                     <main className="flex-1 flex flex-col min-w-0 relative">
-                        <header className="h-16 border-b border-zinc-800/50 flex items-center justify-between px-8 bg-zinc-950/50 backdrop-blur-sm sticky top-0 z-10">
+                        <header className="h-16 border-b border-zinc-800/50 flex items-center justify-between px-8 bg-zinc-950/50 backdrop-blur-sm">
                             <div className="flex items-center gap-4">
                                 <h2 className="text-sm font-semibold text-zinc-400">Project /</h2>
                                 <input value={fileName} onChange={(e) => setFileName(e.target.value)} className="bg-transparent border-none text-sm font-semibold text-zinc-100 hover:bg-zinc-800/50 px-2 py-1 rounded w-48 outline-none" />
@@ -199,7 +192,7 @@
                             <div className="flex items-center gap-3">
                                 <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
                                     {['BN', 'EN'].map(l => (
-                                        <button key={l} onClick={() => setLanguage(l)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${language === l ? 'bg-zinc-800 text-indigo-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>{l}</button>
+                                        <button key={l} onClick={() => setLanguage(l)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${language === l ? 'bg-zinc-800 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}>{l}</button>
                                     ))}
                                 </div>
                                 <button className="p-2 text-zinc-400 hover:text-zinc-100"><Icon name="moon" size={18} /></button>
@@ -207,11 +200,10 @@
                         </header>
 
                         <div className="flex-1 flex overflow-hidden">
-                            {/* Script Area */}
                             <div className="flex-1 flex flex-col border-r border-zinc-800/50 p-8 overflow-y-auto bg-zinc-950/10">
                                 <div className="max-w-4xl w-full mx-auto space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-lg font-bold flex items-center gap-2">Script Area {batchMode && <span className="bg-indigo-500/20 text-indigo-400 text-[10px] px-2 py-0.5 rounded-full uppercase">Batch</span>}</h3>
+                                        <h3 className="text-lg font-bold flex items-center gap-2">Script Area</h3>
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => setBatchMode(!batchMode)} className="text-xs font-medium text-zinc-400 hover:text-zinc-100 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-zinc-800"><Icon name="layers" size={14} />{batchMode ? "Single" : "Batch"}</button>
                                             <button onClick={() => setText('')} className="text-xs font-medium text-zinc-400 hover:text-red-400 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-zinc-800"><Icon name="trash-2" size={14} />Clear</button>
@@ -221,13 +213,13 @@
                                     {!batchMode ? (
                                         <div className="relative group">
                                             <textarea placeholder={language === 'BN' ? "এখানে টেক্সট লিখুন..." : "Enter your script here..."} value={text} onChange={(e) => setText(e.target.value)}
-                                                className="w-full min-h-[400px] bg-zinc-900/30 border-2 border-zinc-800/50 rounded-2xl p-6 text-xl leading-relaxed focus:outline-none focus:border-indigo-500/50 transition-all resize-none shadow-inner scrollbar-thin" />
-                                            <div className="absolute bottom-4 right-6 text-sm text-zinc-500 font-mono">{text.length} <span className="text-zinc-700">/ 5000</span></div>
+                                                className="w-full min-h-[400px] bg-zinc-900/30 border-2 border-zinc-800/50 rounded-2xl p-6 text-xl leading-relaxed focus:outline-none focus:border-indigo-500/50 transition-all resize-none" />
+                                            <div className="absolute bottom-4 right-6 text-sm text-zinc-500 font-mono">{text.length} / 5000</div>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
                                             {batchItems.map((item, idx) => (
-                                                <div key={idx} className="relative flex gap-4 items-start">
+                                                <div key={idx} className="relative flex gap-4 items-start fade-in">
                                                     <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center text-xs font-bold text-zinc-500 mt-2">{idx+1}</div>
                                                     <textarea value={item} onChange={(e) => { const n = [...batchItems]; n[idx] = e.target.value; setBatchItems(n); }} placeholder={`Scene ${idx + 1}...`}
                                                         className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 min-h-[100px] focus:outline-none focus:border-indigo-500 transition-all resize-none" />
@@ -240,17 +232,16 @@
                                 </div>
                             </div>
 
-                            {/* Controls */}
                             <div className="w-80 flex flex-col p-6 space-y-8 overflow-y-auto bg-zinc-950/30">
                                 <section className="space-y-4">
                                     <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2"><Icon name="music" size={14} />Voice Selection</h4>
                                     <div className="space-y-3">
-                                        <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer outline-none">
+                                        <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none outline-none cursor-pointer">
                                             <option value="EN">English (US)</option><option value="BN">Bangla (Bangladesh)</option>
                                         </select>
                                         <div className="grid grid-cols-2 gap-2">
                                             {['Male 1', 'Male 2', 'Female 1', 'Female 2'].map((v) => (
-                                                <button key={v} onClick={() => setVoice(v)} className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${voice === v ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}>{v}</button>
+                                                <button key={v} onClick={() => setVoice(v)} className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${voice === v ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}>{v}</button>
                                             ))}
                                         </div>
                                     </div>
@@ -265,8 +256,8 @@
 
                                 <section className="space-y-4 pt-4 border-t border-zinc-800">
                                     <button disabled={isGenerating || (!text.trim() && !batchMode)} onClick={handleGenerate}
-                                        className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all relative overflow-hidden shadow-xl ${isGenerating ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 hover:shadow-indigo-500/20 active:scale-95 cursor-pointer'}`}>
-                                        {isGenerating ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-600 border-t-zinc-400" />Generating...</> : <><Icon name="play" size={20} fill="white" />Generate Audio</>}
+                                        className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all relative overflow-hidden shadow-xl ${isGenerating ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 active:scale-95'}`}>
+                                        {isGenerating ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-600 border-t-zinc-400" />Generating...</> : <><Icon name="play" size={20} />Generate Audio</>}
                                         {isGenerating && <div className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all duration-100" style={{ width: `${progress}%` }} />}
                                     </button>
                                 </section>
@@ -281,57 +272,37 @@
                             </div>
                             <div className="flex-1 flex flex-col items-center gap-2">
                                 <div className="flex items-center gap-6">
-                                    <button onClick={() => {synth.cancel(); setIsPlaying(false);}} className="text-zinc-500 hover:text-zinc-100 transition-colors"><Icon name="skip-back" size={20} /></button>
-                                    <button onClick={handlePlayPause} className="w-12 h-12 rounded-full bg-zinc-100 text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg">{isPlaying ? <Icon name="pause" size={24} fill="currentColor" /> : <Icon name="play" size={24} className="ml-1" fill="currentColor" />}</button>
-                                    <button className="text-zinc-500 hover:text-zinc-100 transition-colors"><Icon name="skip-forward" size={20} /></button>
+                                    <button onClick={() => {synth.cancel(); setIsPlaying(false);}} className="text-zinc-500 hover:text-zinc-100"><Icon name="skip-back" size={20} /></button>
+                                    <button onClick={handlePlayPause} className="w-12 h-12 rounded-full bg-zinc-100 text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg">{isPlaying ? <Icon name="pause" size={24} /> : <Icon name="play" size={24} className="ml-1" />}</button>
+                                    <button className="text-zinc-500 hover:text-zinc-100"><Icon name="skip-forward" size={20} /></button>
                                 </div>
                                 <div className="w-full max-w-2xl flex items-center gap-4">
                                     <span className="text-[10px] font-mono text-zinc-500 w-10 text-right">Live</span>
                                     <div className="flex-1 h-1 bg-zinc-800 rounded-full relative overflow-hidden">
-                                        <div className={`absolute top-0 left-0 h-full bg-indigo-500 rounded-full ${isPlaying ? 'animate-pulse-slow' : ''}`} style={{ width: isPlaying ? '100%' : '0%' }} />
+                                        <div className={`absolute top-0 left-0 h-full bg-indigo-500 rounded-full ${isPlaying ? 'pulse-slow' : ''}`} style={{ width: isPlaying ? '100%' : '0%' }} />
                                     </div>
                                     <span className="text-[10px] font-mono text-zinc-500 w-10">TTS</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 w-64 justify-end">
-                                <button className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm border border-zinc-700 hover:border-zinc-600"><Icon name="download" size={18} />Download</button>
+                                <button className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border border-zinc-700"><Icon name="download" size={18} />Download</button>
                             </div>
                         </div>
                     </main>
 
-                    {/* History Popover */}
-                    <AnimatePresence>
-                        {activeTab === 'history' && (
-                            <motion.div initial={{ x: 300 }} animate={{ x: 0 }} exit={{ x: 300 }} className="absolute top-16 right-0 bottom-24 w-80 bg-zinc-950 border-l border-zinc-800 z-30 shadow-2xl p-6 glass">
-                                <div className="flex items-center justify-between mb-6"><h3 className="font-bold">Recent Generations</h3><button onClick={() => setActiveTab('generate')} className="p-1 hover:bg-zinc-800 rounded transition-colors"><Icon name="x" size={18} /></button></div>
-                                <div className="space-y-2 overflow-y-auto max-h-full pb-10">
-                                    <div className="p-3 rounded-xl hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all flex items-center justify-between group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400"><Icon name="play" size={14} fill="currentColor" /></div>
-                                            <div><h4 className="text-xs font-medium">Sample Script 1</h4><p className="text-[10px] text-zinc-500">Today • 0:15</p></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
                     {/* Toast Notification */}
-                    <AnimatePresence>
-                        {progress === 100 && !isGenerating && (
-                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-28 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-800 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl z-50 glass">
-                                <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500"><Icon name="check" size={14} /></div>
-                                <span className="text-sm font-medium">Audio generated successfully!</span>
-                                <button onClick={() => setProgress(0)} className="ml-4 text-zinc-500 hover:text-zinc-300"><Icon name="x" size={14} /></button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {showSuccess && (
+                        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 bg-zinc-900 border border-zinc-800 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl z-50 glass fade-in">
+                            <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500"><Icon name="check" size={14} /></div>
+                            <span className="text-sm font-medium">Audio playing now!</span>
+                        </div>
+                    )}
                 </div>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
     </script>
 </body>
 </html>
