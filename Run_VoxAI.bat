@@ -1,4 +1,6 @@
 @echo off
-start "" "index.html"
-echo VoxAI is opening in your browser...
+cd /d "%~dp0"
+echo Launching VoxAI Studio...
+start http://localhost:5173/
+npm run dev
 pause
