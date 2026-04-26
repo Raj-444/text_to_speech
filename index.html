@@ -38,6 +38,8 @@
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
         .waveform-bar { width: 3px; background: #6366f1; border-radius: 10px; transition: height 0.2s; }
         input[type="range"] { accent-color: #6366f1; }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
 <body>
@@ -94,20 +96,77 @@
             const [batchItems, setBatchItems] = useState(['']);
             const [fileName, setFileName] = useState('untitled_audio');
             const [isPlaying, setIsPlaying] = useState(false);
+            const [availableVoices, setAvailableVoices] = useState([]);
+            
+            const synth = window.speechSynthesis;
 
-            useEffect(() => { lucide.createIcons(); }, []);
+            useEffect(() => { 
+                lucide.createIcons();
+                const loadVoices = () => {
+                    const voices = synth.getVoices();
+                    setAvailableVoices(voices);
+                };
+                loadVoices();
+                if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+            }, []);
+
             useEffect(() => { lucide.createIcons(); }, [activeTab, batchMode, batchItems, isGenerating]);
 
             const handleGenerate = () => {
-                if (!text.trim() && !batchMode) return;
+                const textToSpeak = batchMode ? batchItems.join('. ') : text;
+                if (!textToSpeak.trim()) return;
+
                 setIsGenerating(true);
                 setProgress(0);
+
+                // Simulation for progress bar
                 const interval = setInterval(() => {
                     setProgress(p => {
-                        if (p >= 100) { clearInterval(interval); setIsGenerating(false); return 100; }
-                        return p + 5;
+                        if (p >= 90) { clearInterval(interval); return 90; }
+                        return p + 10;
                     });
                 }, 100);
+
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                
+                // Try to find a matching voice
+                const langCode = language === 'BN' ? 'bn-BD' : 'en-US';
+                const matchedVoice = availableVoices.find(v => v.lang.includes(langCode) && (voice.includes('Female') ? (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha')) : (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Google'))));
+                
+                if (matchedVoice) utterance.voice = matchedVoice;
+                utterance.rate = speed;
+                utterance.pitch = pitch;
+                utterance.volume = volume;
+
+                utterance.onend = () => {
+                    setProgress(100);
+                    setIsGenerating(false);
+                    setIsPlaying(false);
+                    console.log('Finished speaking');
+                };
+
+                utterance.onerror = (e) => {
+                    console.error('Speech error', e);
+                    setIsGenerating(false);
+                };
+
+                synth.cancel(); // Stop current speech
+                synth.speak(utterance);
+                setIsPlaying(true);
+            };
+
+            const handlePlayPause = () => {
+                if (synth.speaking) {
+                    if (synth.paused) {
+                        synth.resume();
+                        setIsPlaying(true);
+                    } else {
+                        synth.pause();
+                        setIsPlaying(false);
+                    }
+                } else {
+                    handleGenerate();
+                }
             };
 
             return (
@@ -222,16 +281,16 @@
                             </div>
                             <div className="flex-1 flex flex-col items-center gap-2">
                                 <div className="flex items-center gap-6">
-                                    <button className="text-zinc-500 hover:text-zinc-100 transition-colors"><Icon name="skip-back" size={20} /></button>
-                                    <button onClick={() => setIsPlaying(!isPlaying)} className="w-12 h-12 rounded-full bg-zinc-100 text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg">{isPlaying ? <Icon name="pause" size={24} fill="currentColor" /> : <Icon name="play" size={24} className="ml-1" fill="currentColor" />}</button>
+                                    <button onClick={() => {synth.cancel(); setIsPlaying(false);}} className="text-zinc-500 hover:text-zinc-100 transition-colors"><Icon name="skip-back" size={20} /></button>
+                                    <button onClick={handlePlayPause} className="w-12 h-12 rounded-full bg-zinc-100 text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg">{isPlaying ? <Icon name="pause" size={24} fill="currentColor" /> : <Icon name="play" size={24} className="ml-1" fill="currentColor" />}</button>
                                     <button className="text-zinc-500 hover:text-zinc-100 transition-colors"><Icon name="skip-forward" size={20} /></button>
                                 </div>
                                 <div className="w-full max-w-2xl flex items-center gap-4">
-                                    <span className="text-[10px] font-mono text-zinc-500 w-10 text-right">0:45</span>
+                                    <span className="text-[10px] font-mono text-zinc-500 w-10 text-right">Live</span>
                                     <div className="flex-1 h-1 bg-zinc-800 rounded-full relative overflow-hidden">
-                                        <div className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" style={{ width: '35%' }} />
+                                        <div className={`absolute top-0 left-0 h-full bg-indigo-500 rounded-full ${isPlaying ? 'animate-pulse-slow' : ''}`} style={{ width: isPlaying ? '100%' : '0%' }} />
                                     </div>
-                                    <span className="text-[10px] font-mono text-zinc-500 w-10">2:15</span>
+                                    <span className="text-[10px] font-mono text-zinc-500 w-10">TTS</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 w-64 justify-end">
@@ -251,7 +310,6 @@
                                             <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400"><Icon name="play" size={14} fill="currentColor" /></div>
                                             <div><h4 className="text-xs font-medium">Sample Script 1</h4><p className="text-[10px] text-zinc-500">Today • 0:15</p></div>
                                         </div>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button className="p-1.5 text-zinc-400 hover:text-zinc-100"><Icon name="download" size={14} /></button></div>
                                     </div>
                                 </div>
                             </motion.div>
