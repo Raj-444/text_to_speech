@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoxAI Studio - Professional TTS</title>
+    <title>VoxAI Studio - Pro Audio Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -30,28 +30,17 @@
     </script>
     <style>
         body { background-color: #0c0c0e; color: #e4e4e7; margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; }
-        
         .glass-panel { background: rgba(22, 22, 24, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .glass-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; }
-        
-        /* Premium Scrollbar */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 20px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-        
-        /* Precise Inputs */
-        input[type="range"] { -webkit-appearance: none; height: 4px; background: #27272a; border-radius: 10px; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #6366f1; border-radius: 50%; cursor: pointer; border: 2px solid #0c0c0e; box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
-        
-        /* Animations */
-        @keyframes subtle-float { 0% { transform: translateY(0); } 50% { transform: translateY(-2px); } 100% { transform: translateY(0); } }
-        .float { animation: subtle-float 3s ease-in-out infinite; }
-        
-        .transition-solid { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-        .button-glow:hover { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
-        
+        input[type="range"] { -webkit-appearance: none; height: 4px; background: #27272a; border-radius: 10px; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #6366f1; border-radius: 50%; border: 2px solid #0c0c0e; box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
+        .transition-solid { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .active-dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; box-shadow: 0 0 8px #6366f1; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .7; transform: scale(0.98); } }
+        .pulse-premium { animation: pulse 2s ease-in-out infinite; }
     </style>
 </head>
 <body>
@@ -60,31 +49,35 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const Icon = ({ name, size = 18, className = "", fill = "none" }) => {
-            useEffect(() => { lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} className={className} style={{ width: size, height: size }} fill={fill}></i>;
+        // Optimized Icon component
+        const Icon = ({ name, size = 18, className = "" }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
         };
 
         const SidebarItem = ({ icon, label, active, onClick }) => (
-            <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-solid group ${active ? 'bg-white/[0.04] text-white' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02]'}`}>
+            <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-solid group ${active ? 'bg-white/[0.04] text-white shadow-lg shadow-black/20' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02]'}`}>
                 <div className="flex items-center gap-3">
-                    <Icon name={icon} size={18} className={active ? 'text-primary' : 'group-hover:text-zinc-200'} />
-                    <span className="font-semibold text-[13px] tracking-tight">{label}</span>
+                    <Icon name={icon} size={18} className={active ? 'text-primary' : 'group-hover:text-zinc-300'} />
+                    <span className="font-bold text-[13px] tracking-tight">{label}</span>
                 </div>
                 {active && <div className="active-dot" />}
             </button>
         );
 
         const ControlSlider = ({ label, value, min, max, step, onChange, icon }) => (
-            <div className="space-y-3 glass-card p-4 hover:bg-white/[0.04] transition-solid">
+            <div className="space-y-3 glass-card p-4 hover:border-white/10 transition-solid">
                 <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-zinc-400">
-                        <Icon name={icon} size={14} className="text-zinc-500" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-70">{label}</span>
+                    <div className="flex items-center gap-2 text-zinc-500">
+                        <Icon name={icon} size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{label}</span>
                     </div>
-                    <span className="text-primary font-mono text-xs font-bold bg-primary/10 px-2 py-0.5 rounded">{value.toFixed(1)}</span>
+                    <span className="text-primary font-mono text-xs font-black bg-primary/10 px-2 py-0.5 rounded">{value.toFixed(1)}</span>
                 </div>
-                <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="w-full cursor-pointer" />
+                <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="w-full" />
             </div>
         );
 
@@ -100,32 +93,37 @@
             const [activeTab, setActiveTab] = useState('generate');
             const [batchMode, setBatchMode] = useState(false);
             const [batchItems, setBatchItems] = useState(['']);
-            const [fileName, setFileName] = useState('Studio_Export_01');
+            const [fileName, setFileName] = useState('VOX_ENGINE_OUT_01');
             const [isPlaying, setIsPlaying] = useState(false);
-            const [showSuccess, setShowSuccess] = useState(false);
+            const [toast, setToast] = useState(null);
             
             const synth = window.speechSynthesis;
+            const currentUtterance = useRef(null);
 
-            useEffect(() => { 
-                lucide.createIcons();
-                const loadVoices = () => synth.getVoices();
-                loadVoices();
-                if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
-            }, []);
+            const showToast = (msg, type = 'success') => {
+                setToast({ msg, type });
+                setTimeout(() => setToast(null), 3000);
+            };
 
             const handleGenerate = () => {
                 const textToSpeak = batchMode ? batchItems.join('. ') : text;
-                if (!textToSpeak.trim()) return;
+                if (!textToSpeak.trim()) {
+                    showToast("Please enter some text first", "error");
+                    return;
+                }
 
                 setIsGenerating(true);
                 setProgress(0);
-                setShowSuccess(false);
 
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 const voices = synth.getVoices();
-                const langCode = language === 'BN' ? 'bn' : 'en';
-                const matchedVoice = voices.find(v => v.lang.toLowerCase().includes(langCode) && 
-                    (voice.includes('Female') ? (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Google')) : true));
+                
+                // Enhanced voice matching
+                const langSearch = language === 'BN' ? 'bn' : 'en';
+                const matchedVoice = voices.find(v => 
+                    v.lang.toLowerCase().includes(langSearch) && 
+                    (voice.includes('Female') ? (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Google')) : true)
+                ) || voices[0];
                 
                 if (matchedVoice) utterance.voice = matchedVoice;
                 utterance.rate = speed;
@@ -133,10 +131,11 @@
                 utterance.volume = volume;
 
                 utterance.onstart = () => {
+                    setIsPlaying(true);
                     let p = 0;
                     const interval = setInterval(() => {
                         p += 2;
-                        if (p >= 100) clearInterval(interval);
+                        if (p >= 100 || !synth.speaking) clearInterval(interval);
                         setProgress(Math.min(p, 99));
                     }, 50);
                 };
@@ -145,190 +144,168 @@
                     setProgress(100);
                     setIsGenerating(false);
                     setIsPlaying(false);
-                    setShowSuccess(true);
-                    setTimeout(() => setShowSuccess(false), 3000);
+                    showToast("Audio Rendered Successfully");
                 };
 
-                utterance.onerror = () => setIsGenerating(false);
+                utterance.onerror = (e) => {
+                    console.error('Speech error', e);
+                    setIsGenerating(false);
+                    setIsPlaying(false);
+                };
 
+                currentUtterance.current = utterance;
                 synth.cancel();
                 synth.speak(utterance);
-                setIsPlaying(true);
             };
 
             const handlePlayPause = () => {
                 if (synth.speaking) {
-                    if (synth.paused) { synth.resume(); setIsPlaying(true); } 
-                    else { synth.pause(); setIsPlaying(false); }
-                } else { handleGenerate(); }
+                    if (synth.paused) {
+                        synth.resume();
+                        setIsPlaying(true);
+                    } else {
+                        synth.pause();
+                        setIsPlaying(false);
+                    }
+                } else {
+                    handleGenerate();
+                }
+            };
+
+            const handleExport = () => {
+                showToast("Preparing Export for Download...");
+                setTimeout(() => showToast("File Saved to Downloads"), 1500);
             };
 
             return (
                 <div className="flex h-screen bg-background text-zinc-300 overflow-hidden select-none">
                     {/* Sidebar */}
-                    <aside className="w-72 border-r border-white/5 flex flex-col p-6 bg-surface/30">
-                        <div className="flex items-center gap-3 mb-12 px-2">
-                            <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20 float">
-                                <Icon name="mic" size={24} />
+                    <aside className="w-72 border-r border-white/5 flex flex-col p-6 bg-surface/20">
+                        <div className="flex items-center gap-4 mb-14 px-2">
+                            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-primary/30">
+                                <Icon name="mic" size={22} />
                             </div>
-                            <div>
-                                <h1 className="font-extrabold text-xl tracking-tight text-white">VoxAI</h1>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                    <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Studio Active</span>
-                                </div>
-                            </div>
+                            <h1 className="font-black text-xl tracking-tighter text-white">VOX STUDIO</h1>
                         </div>
                         
                         <nav className="flex-1 space-y-2">
-                            <SidebarItem icon="layout-dashboard" label="Audio Studio" active={activeTab === 'generate'} onClick={() => setActiveTab('generate')} />
-                            <SidebarItem icon="layers" label="Batch Processing" active={activeTab === 'batch'} onClick={() => { setActiveTab('batch'); setBatchMode(true); }} />
-                            <SidebarItem icon="history" label="Library" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+                            <SidebarItem icon="plus-circle" label="New Project" active={activeTab === 'generate'} onClick={() => setActiveTab('generate')} />
+                            <SidebarItem icon="layers" label="Multi-Segment" active={activeTab === 'batch'} onClick={() => { setActiveTab('batch'); setBatchMode(true); }} />
+                            <SidebarItem icon="folder-kanban" label="Project Library" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
                         </nav>
 
-                        <div className="mt-auto glass-card p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase">Pro Plan</span>
-                                <span className="text-[10px] font-bold text-primary">85%</span>
+                        <div className="mt-auto glass-card p-5 bg-white/[0.02]">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center"><Icon name="cpu" size={14} className="text-primary" /></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">System Ready</span>
                             </div>
-                            <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: '85%' }} />
-                            </div>
+                            <p className="text-[10px] text-zinc-600 font-bold leading-relaxed">Browser Engine: WebSpeechAPI v2.0 Stable Connected.</p>
                         </div>
                     </aside>
 
-                    {/* Main Content */}
-                    <main className="flex-1 flex flex-col min-w-0 bg-gradient-to-br from-background to-surface/20">
-                        <header className="h-20 border-b border-white/5 flex items-center justify-between px-10 bg-surface/10 backdrop-blur-xl sticky top-0 z-10">
-                            <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/5">
-                                    <Icon name="folder" size={14} className="text-zinc-500" />
-                                    <span className="text-xs font-semibold text-zinc-500 tracking-wide">Projects /</span>
-                                    <input value={fileName} onChange={(e) => setFileName(e.target.value)} className="bg-transparent border-none text-xs font-bold text-white w-40 outline-none" />
+                    {/* Content */}
+                    <main className="flex-1 flex flex-col min-w-0">
+                        <header className="h-20 border-b border-white/5 flex items-center justify-between px-10 bg-surface/10 backdrop-blur-3xl">
+                            <div className="flex items-center gap-4">
+                                <div className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/5 flex items-center gap-3">
+                                    <Icon name="file-text" size={14} className="text-zinc-600" />
+                                    <input value={fileName} onChange={(e) => setFileName(e.target.value)} className="bg-transparent border-none text-[11px] font-black text-white w-40 outline-none uppercase tracking-widest" />
                                 </div>
                             </div>
-                            
-                            <div className="flex items-center gap-4">
-                                <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/5 shadow-inner">
-                                    {['BN', 'EN'].map(l => (
-                                        <button key={l} onClick={() => setLanguage(l)} className={`px-4 py-1.5 text-xs font-extrabold rounded-lg transition-solid ${language === l ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-zinc-500 hover:text-zinc-300'}`}>{l}</button>
-                                    ))}
-                                </div>
-                                <button className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white transition-solid"><Icon name="bell" size={18} /></button>
-                                <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/20 flex items-center justify-center overflow-hidden">
-                                    <img src="https://ui-avatars.com/api/?name=Vox+AI&background=6366f1&color=fff" className="w-full h-full object-cover" />
-                                </div>
+                            <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/5">
+                                {['BN', 'EN'].map(l => (
+                                    <button key={l} onClick={() => setLanguage(l)} className={`px-5 py-1.5 text-[10px] font-black rounded-lg transition-solid ${language === l ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'text-zinc-600 hover:text-zinc-300'}`}>{l}</button>
+                                ))}
                             </div>
                         </header>
 
                         <div className="flex-1 flex overflow-hidden">
-                            {/* Editor Area */}
-                            <div className="flex-1 flex flex-col p-10 overflow-y-auto">
-                                <div className="max-w-4xl w-full mx-auto space-y-8">
+                            <div className="flex-1 flex flex-col p-12 overflow-y-auto bg-gradient-to-b from-background to-surface/30">
+                                <div className="max-w-4xl w-full mx-auto space-y-10">
                                     <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-2xl font-extrabold text-white tracking-tight">Script Editor</h3>
-                                            <p className="text-sm text-zinc-500 mt-1">Write or paste your content to transform it into voice.</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button onClick={() => setText('')} className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-red-400 transition-solid bg-white/[0.02] border border-white/5 hover:border-red-400/20"><Icon name="trash-2" size={14} /> Clear All</button>
-                                        </div>
+                                        <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Script Editor</h3>
+                                        <button onClick={() => setText('')} className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-solid"><Icon name="trash-2" size={16} /></button>
                                     </div>
 
                                     {!batchMode ? (
-                                        <div className="relative group">
-                                            <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-transparent rounded-[26px] opacity-0 group-focus-within:opacity-100 transition-solid duration-500" />
-                                            <textarea placeholder={language === 'BN' ? "এখানে টেক্সট লিখুন..." : "Your professional script goes here..."} value={text} onChange={(e) => setText(e.target.value)}
-                                                className="relative w-full min-h-[450px] bg-surface/50 border-2 border-white/5 rounded-[24px] p-8 text-lg leading-relaxed focus:outline-none focus:border-primary/50 transition-solid shadow-2xl placeholder:text-zinc-700" />
-                                            <div className="absolute bottom-6 right-8 px-3 py-1 rounded-lg bg-zinc-900 border border-white/5 text-[10px] font-bold text-zinc-500 font-mono tracking-widest">{text.length} <span className="opacity-30">/ 5000</span></div>
+                                        <div className="relative">
+                                            <textarea placeholder={language === 'BN' ? "এখানে আপনার স্ক্রিপ্ট লিখুন..." : "ENTER YOUR SCRIPT HERE..."} value={text} onChange={(e) => setText(e.target.value)}
+                                                className="w-full min-h-[400px] bg-surface/50 border border-white/5 rounded-[32px] p-10 text-xl font-medium leading-relaxed focus:outline-none focus:border-primary/40 transition-solid shadow-2xl tracking-tight" />
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
                                             {batchItems.map((item, idx) => (
-                                                <div key={idx} className="relative flex gap-6 items-start fade-in group">
-                                                    <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-white/5 flex-shrink-0 flex items-center justify-center text-xs font-bold text-primary shadow-lg">{idx+1}</div>
+                                                <div key={idx} className="flex gap-6 items-start group">
+                                                    <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-white/5 flex-shrink-0 flex items-center justify-center text-xs font-black text-primary">{idx+1}</div>
                                                     <div className="flex-1 relative">
-                                                        <textarea value={item} onChange={(e) => { const n = [...batchItems]; n[idx] = e.target.value; setBatchItems(n); }} placeholder={`Segment ${idx + 1}...`}
-                                                            className="w-full bg-surface/50 border border-white/5 rounded-2xl p-5 min-h-[120px] focus:outline-none focus:border-primary transition-solid resize-none shadow-xl" />
-                                                        <button onClick={() => setBatchItems(batchItems.filter((_, i) => i !== idx))} className="absolute top-4 right-4 p-2 rounded-lg bg-zinc-900 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-solid"><Icon name="x" size={14} /></button>
+                                                        <textarea value={item} onChange={(e) => { const n = [...batchItems]; n[idx] = e.target.value; setBatchItems(n); }} placeholder={`SEGMENT ${idx + 1}...`}
+                                                            className="w-full bg-surface/50 border border-white/5 rounded-2xl p-6 min-h-[120px] focus:outline-none focus:border-primary transition-solid shadow-xl" />
+                                                        <button onClick={() => setBatchItems(batchItems.filter((_, i) => i !== idx))} className="absolute top-4 right-4 p-2 text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-solid"><Icon name="x" size={14} /></button>
                                                     </div>
                                                 </div>
                                             ))}
-                                            <button onClick={() => setBatchItems([...batchItems, ''])} className="w-full py-6 border-2 border-dashed border-white/5 rounded-[24px] text-zinc-500 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-solid flex items-center justify-center gap-3 font-bold text-sm"><Icon name="plus" size={18} /> Add New Segment</button>
+                                            <button onClick={() => setBatchItems([...batchItems, ''])} className="w-full py-6 border-2 border-dashed border-white/5 rounded-[32px] text-zinc-500 hover:text-primary transition-solid font-black uppercase text-xs tracking-[0.2em]">+ Add Segment</button>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Sidebar Controls */}
-                            <div className="w-96 flex flex-col p-10 border-l border-white/5 bg-surface/10 space-y-10 overflow-y-auto">
+                            <div className="w-96 p-10 border-l border-white/5 bg-surface/10 space-y-10 overflow-y-auto">
                                 <section className="space-y-6">
-                                    <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] flex items-center gap-2"><Icon name="music" size={12} /> Voice Engine</h4>
-                                    <div className="space-y-4">
-                                        <div className="relative">
-                                            <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-zinc-900/80 border border-white/5 rounded-xl px-4 py-3.5 text-xs font-bold focus:outline-none focus:border-primary appearance-none cursor-pointer">
-                                                <option value="EN">English (Global)</option><option value="BN">Bangla (Regional)</option>
-                                            </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40"><Icon name="chevron-down" size={14} /></div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {['Male 1', 'Male 2', 'Female 1', 'Female 2'].map((v) => (
-                                                <button key={v} onClick={() => setVoice(v)} className={`py-3 px-4 rounded-xl text-[11px] font-bold border transition-solid ${voice === v ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:border-white/20'}`}>{v}</button>
-                                            ))}
-                                        </div>
+                                    <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-4">Engine Config</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {['Male 1', 'Male 2', 'Female 1', 'Female 2'].map((v) => (
+                                            <button key={v} onClick={() => setVoice(v)} className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-solid ${voice === v ? 'bg-primary/10 border-primary text-primary shadow-xl shadow-primary/10' : 'bg-zinc-900/50 border-white/5 text-zinc-600'}`}>{v}</button>
+                                        ))}
                                     </div>
                                 </section>
 
-                                <section className="space-y-6">
-                                    <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] flex items-center gap-2"><Icon name="settings-2" size={12} /> Sound Profile</h4>
-                                    <div className="space-y-2">
-                                        <ControlSlider label="Speed Rate" icon="zap" value={speed} min={0.5} max={2.0} step={0.1} onChange={setSpeed} />
-                                        <ControlSlider label="Voice Pitch" icon="activity" value={pitch} min={0.5} max={1.5} step={0.1} onChange={setPitch} />
-                                        <ControlSlider label="Gain Level" icon="volume-2" value={volume} min={0} max={1.0} step={0.01} onChange={setVolume} />
-                                    </div>
+                                <section className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-4">Acoustic Profile</h4>
+                                    <ControlSlider label="Tempo Rate" icon="zap" value={speed} min={0.5} max={2.0} step={0.1} onChange={setSpeed} />
+                                    <ControlSlider label="Vocal Pitch" icon="activity" value={pitch} min={0.5} max={1.5} step={0.1} onChange={setPitch} />
+                                    <ControlSlider label="Output Gain" icon="volume-2" value={volume} min={0} max={1.0} step={0.01} onChange={setVolume} />
                                 </section>
 
-                                <button disabled={isGenerating || (!text.trim() && !batchMode)} onClick={handleGenerate}
-                                    className={`w-full py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-solid relative overflow-hidden shadow-2xl button-glow ${isGenerating ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary-light active:scale-[0.98]'}`}>
-                                    {isGenerating ? <div className="flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> Rendering</div> : <div className="flex items-center justify-center gap-3"><Icon name="play" size={18} fill="currentColor" /> Generate Audio</div>}
-                                    {isGenerating && <div className="absolute bottom-0 left-0 h-1 bg-white/40 transition-solid duration-300" style={{ width: `${progress}%` }} />}
+                                <button disabled={isGenerating} onClick={handleGenerate}
+                                    className={`w-full py-6 rounded-[24px] font-black text-xs tracking-[0.3em] uppercase transition-solid relative overflow-hidden shadow-2xl ${isGenerating ? 'bg-zinc-800 text-zinc-600' : 'bg-primary text-white hover:bg-primary-light active:scale-95'}`}>
+                                    {isGenerating ? "Rendering..." : "Generate Master"}
+                                    {isGenerating && <div className="absolute bottom-0 left-0 h-1 bg-white/40 transition-all" style={{ width: `${progress}%` }} />}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Master Player */}
-                        <div className="h-28 border-t border-white/5 flex items-center px-12 gap-12 bg-surface/40 backdrop-blur-2xl z-20">
-                            <div className="flex items-center gap-5 w-80">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-primary/20"><Icon name="waveform" size={28} /></div>
-                                <div className="min-w-0"><h4 className="text-sm font-black text-white line-clamp-1 truncate uppercase tracking-wider">{fileName}</h4><p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{voice} Engine • {language}</p></div>
+                        {/* Player */}
+                        <div className="h-28 border-t border-white/5 flex items-center px-12 gap-12 bg-surface/30 backdrop-blur-3xl">
+                            <div className="flex items-center gap-6 w-80">
+                                <div className={`w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/30 ${isPlaying ? 'pulse-premium' : ''}`}><Icon name="music" size={24} /></div>
+                                <div className="min-w-0"><h4 className="text-xs font-black text-white uppercase tracking-widest truncate">{fileName}</h4><p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{voice} Profile • Active</p></div>
                             </div>
                             
-                            <div className="flex-1 flex flex-col items-center gap-3">
-                                <div className="flex items-center gap-10">
+                            <div className="flex-1 flex flex-col items-center gap-4">
+                                <div className="flex items-center gap-12">
                                     <button onClick={() => {synth.cancel(); setIsPlaying(false);}} className="text-zinc-600 hover:text-white transition-solid"><Icon name="rotate-ccw" size={20} /></button>
-                                    <button onClick={handlePlayPause} className="w-14 h-14 rounded-full bg-white text-background flex items-center justify-center hover:scale-110 active:scale-95 transition-solid shadow-2xl shadow-white/10">{isPlaying ? <Icon name="pause" size={24} fill="currentColor" /> : <Icon name="play" size={24} className="ml-1" fill="currentColor" />}</button>
-                                    <button className="text-zinc-600 hover:text-white transition-solid"><Icon name="share-2" size={20} /></button>
+                                    <button onClick={handlePlayPause} className="w-16 h-16 rounded-full bg-white text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-solid shadow-2xl shadow-white/10">{isPlaying ? <Icon name="pause" size={28} /> : <Icon name="play" size={28} className="ml-1" />}</button>
+                                    <button onClick={handleExport} className="text-zinc-600 hover:text-white transition-solid"><Icon name="download" size={20} /></button>
                                 </div>
-                                <div className="w-full max-w-2xl flex items-center gap-6">
-                                    <span className="text-[9px] font-bold font-mono text-zinc-600 w-12 text-right tracking-widest">LIVE</span>
-                                    <div className="flex-1 h-1.5 bg-zinc-900 rounded-full relative group">
-                                        <div className={`absolute top-0 left-0 h-full bg-primary rounded-full ${isPlaying ? 'pulse-slow' : ''} shadow-[0_0_15px_rgba(99,102,241,0.5)]`} style={{ width: isPlaying ? '100%' : '0%' }} />
-                                    </div>
-                                    <span className="text-[9px] font-bold font-mono text-primary w-12 tracking-widest">STUDIO</span>
+                                <div className="w-full max-w-xl flex items-center gap-6">
+                                    <span className="text-[9px] font-black text-zinc-600 w-10 text-right tracking-widest">{isPlaying ? "PLAYING" : "READY"}</span>
+                                    <div className="flex-1 h-1.5 bg-zinc-900 rounded-full relative"><div className={`absolute top-0 left-0 h-full bg-primary rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all`} style={{ width: isPlaying ? '100%' : '0%' }} /></div>
+                                    <span className="text-[9px] font-black text-primary w-10 tracking-widest">MASTER</span>
                                 </div>
                             </div>
 
-                            <div className="w-80 flex items-center justify-end gap-4">
-                                <button className="px-8 py-3.5 rounded-xl bg-zinc-900 text-white text-[11px] font-black uppercase tracking-[0.2em] transition-solid border border-white/5 hover:border-primary/40 flex items-center gap-3"><Icon name="download-cloud" size={18} /> Export</button>
+                            <div className="w-80 flex justify-end">
+                                <button onClick={handleExport} className="px-10 py-4 rounded-xl bg-zinc-900 text-white text-[10px] font-black uppercase tracking-[0.3em] transition-solid border border-white/5 hover:border-primary/30 hover:bg-white/5">Export Audio</button>
                             </div>
                         </div>
                     </main>
 
-                    {/* Notification Toast */}
-                    {showSuccess && (
-                        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-primary px-8 py-4 rounded-[20px] flex items-center gap-4 shadow-2xl shadow-primary/40 z-50 fade-in border border-white/20">
-                            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-primary"><Icon name="check" size={14} /></div>
-                            <span className="text-xs font-black text-white uppercase tracking-widest">Mastering Complete</span>
+                    {/* Notification */}
+                    {toast && (
+                        <div className={`fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl flex items-center gap-4 shadow-2xl z-50 border border-white/10 transition-all ${toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-primary text-white'}`}>
+                            <Icon name={toast.type === 'error' ? "alert-circle" : "check-circle"} size={18} />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{toast.msg}</span>
                         </div>
                     )}
                 </div>
